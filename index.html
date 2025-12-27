@@ -186,13 +186,38 @@ th { background: #ecf0f1; }
 
 /* Print Styles */
 @media print {
+  body {
+    background: white;
+    margin: 0;
+    padding: 0;
+  }
   .input-section, .action-section, .remove-btn, select, button, input {
     display: none;
   }
-  #printCustomerInfo { display: block; }
-  body { background: white; }
-  .company-header { box-shadow: none; border: none; }
-  h1 { color: black; }
+  .company-header {
+    box-shadow: none;
+    border: none;
+    padding: 10px;
+  }
+  h1 { color: black; font-size: 18pt; margin-bottom: 5px; }
+  #printCustomerInfo {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 12pt;
+    line-height: 1.2;
+  }
+  .invoice-header {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    margin-bottom: 5px;
+    padding: 5px;
+  }
+  .info-box { flex: 1 1 auto; margin:0; padding:0; }
+  .table-wrapper { overflow: visible; }
+  table, th, td { font-size: 10pt; border: 1px solid #333; padding: 4px; }
+  #totalAmount { font-size: 12pt; margin-top: 5px; }
 }
 </style>
 </head>
@@ -295,93 +320,74 @@ const printInvoiceBtn = document.getElementById("printInvoice");
 const printCustomerName = document.getElementById("printCustomerName");
 const printCustomerAddress = document.getElementById("printCustomerAddress");
 
-// Generate new invoice
+// Invoice number & date
 function newInvoiceDetails() {
-  invoiceNumber.textContent = "INV-" + Math.floor(1000 + Math.random() * 9000);
+  invoiceNumber.textContent = "INV-" + Math.floor(1000 + Math.random()*9000);
   invoiceDate.textContent = new Date().toLocaleDateString();
 }
 newInvoiceDetails();
 
-// Load JSON (use local files)
+// Load JSON
 fetch("customers.json").then(r=>r.json()).then(d=>{customers=d;renderCustomers();});
 fetch("items.json").then(r=>r.json()).then(d=>{items=d;renderItems();});
 
 function renderCustomers() {
-  customerSelect.innerHTML = '<option value="">-- Select Customer --</option>';
-  customers.forEach((c,i)=>{ const opt = document.createElement("option"); opt.value=i; opt.textContent=c.name; customerSelect.appendChild(opt);});
+  customerSelect.innerHTML='<option value="">-- Select Customer --</option>';
+  customers.forEach((c,i)=>{ const opt=document.createElement("option"); opt.value=i; opt.textContent=c.name; customerSelect.appendChild(opt); });
 }
 
 function renderItems() {
-  itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
-  items.forEach((it,i)=>{ const opt=document.createElement("option"); opt.value=i; opt.textContent=it.name; itemSelect.appendChild(opt);});
+  itemSelect.innerHTML='<option value="">-- Select Item --</option>';
+  items.forEach((it,i)=>{ const opt=document.createElement("option"); opt.value=i; opt.textContent=it.name; itemSelect.appendChild(opt); });
 }
 
 // Customer auto-fill
-customerSelect.addEventListener("change", () => {
-  const idx = customerSelect.value;
-  if(idx!==""){customerName.value=customers[idx].name; customerAddress.value=customers[idx].address;}
-  else {customerName.value=""; customerAddress.value="";}
-  updatePrintInfo();
-});
-
-function updatePrintInfo() {
-  printCustomerName.textContent = customerName.value || "(Not specified)";
-  printCustomerAddress.textContent = customerAddress.value || "(Not specified)";
-}
+customerSelect.addEventListener("change",()=>{ const idx=customerSelect.value; if(idx!==""){customerName.value=customers[idx].name; customerAddress.value=customers[idx].address;} else{customerName.value=""; customerAddress.value="";} updatePrintInfo();});
+function updatePrintInfo(){ printCustomerName.textContent=customerName.value || "(Not specified)"; printCustomerAddress.textContent=customerAddress.value || "(Not specified)"; }
 
 // Add new customer
-addCustomerBtn.addEventListener("click", () => {
-  const name = customerName.value.trim();
-  const address = customerAddress.value.trim();
+addCustomerBtn.addEventListener("click",()=>{
+  const name=customerName.value.trim();
+  const address=customerAddress.value.trim();
   if(!name||!address) return alert("Enter both name & address.");
   customers.push({name,address});
   renderCustomers();
-  customerSelect.value = customers.length-1;
+  customerSelect.value=customers.length-1;
   updatePrintInfo();
   alert("✅ New customer added!");
 });
 
 // Items
-itemSelect.addEventListener("change", () => {
-  const idx=itemSelect.value;
-  priceInput.value=idx!==""?items[idx].price:"";
-});
+itemSelect.addEventListener("change",()=>{ const idx=itemSelect.value; priceInput.value=idx!==""?items[idx].price:""; });
 
 // Add new item
-addNewItemBtn.addEventListener("click", () => {
+addNewItemBtn.addEventListener("click",()=>{
   const name=newItemName.value.trim();
   const price=parseFloat(newItemPrice.value);
   if(!name||isNaN(price)) return alert("Enter valid item name and price.");
   items.push({name,price});
   renderItems();
-  itemSelect.value=items.length-1;
-  priceInput.value=price;
+  itemSelect.value=items.length-1; priceInput.value=price;
   newItemName.value=""; newItemPrice.value="";
   alert(`✅ New item added: ${name}`);
 });
 
 // Add item to table
-addItemBtn.addEventListener("click", () => {
-  const idx=itemSelect.value;
-  const itemName=idx!==""?items[idx].name:"";
-  const quantity=parseInt(quantityInput.value);
-  const price=parseFloat(priceInput.value);
+addItemBtn.addEventListener("click",()=>{
+  const idx=itemSelect.value; const itemName=idx!==""?items[idx].name:"";
+  const quantity=parseInt(quantityInput.value); const price=parseFloat(priceInput.value);
   if(!itemName||isNaN(quantity)||isNaN(price)) return alert("Enter valid item details.");
-  const total=quantity*price;
-  grandTotal+=total;
+  const total=quantity*price; grandTotal+=total;
   invoiceItemsList.push({item:itemName,quantity,price,total});
-
   const row=document.createElement("tr");
   row.innerHTML=`<td>${itemName}</td><td>${quantity}</td><td>${price.toFixed(2)}</td><td>${total.toFixed(2)}</td><td><button class="remove-btn">Remove</button></td>`;
   invoiceItemsTable.appendChild(row);
   totalAmountDisplay.textContent=`Total: $${grandTotal.toFixed(2)}`;
-
   row.querySelector(".remove-btn").addEventListener("click",()=>{
     grandTotal-=total;
     totalAmountDisplay.textContent=`Total: $${grandTotal.toFixed(2)}`;
     row.remove();
   });
-
   quantityInput.value=""; priceInput.value="";
 });
 
@@ -390,15 +396,11 @@ saveInvoiceBtn.addEventListener("click",()=>{
   if(!customerName.value) return alert("Select or enter a customer first.");
   const invoiceData={invoiceNumber:invoiceNumber.textContent,date:invoiceDate.textContent,customer:{name:customerName.value,address:customerAddress.value},items:invoiceItemsList,grandTotal};
   const blob=new Blob([JSON.stringify(invoiceData,null,2)],{type:"application/json"});
-  const link=document.createElement('a');
-  link.href=URL.createObjectURL(blob);
-  link.download=`${invoiceNumber.textContent}.json`;
-  link.click();
+  const link=document.createElement('a'); link.href=URL.createObjectURL(blob);
+  link.download=`${invoiceNumber.textContent}.json`; link.click();
   alert("✅ Invoice saved!");
-
   // Reset
-  invoiceItemsList=[]; grandTotal=0;
-  invoiceItemsTable.innerHTML="";
+  invoiceItemsList=[]; grandTotal=0; invoiceItemsTable.innerHTML="";
   totalAmountDisplay.textContent="Total: $0";
   customerSelect.value=""; customerName.value=""; customerAddress.value="";
   itemSelect.value=""; quantityInput.value=""; priceInput.value="";
@@ -407,11 +409,7 @@ saveInvoiceBtn.addEventListener("click",()=>{
 });
 
 // Print invoice
-printInvoiceBtn.addEventListener("click",()=>{
-  if(!customerName.value) return alert("Select a customer first.");
-  updatePrintInfo();
-  window.print();
-});
+printInvoiceBtn.addEventListener("click",()=>{ if(!customerName.value) return alert("Select a customer first."); updatePrintInfo(); window.print(); });
 </script>
 </body>
 </html>
