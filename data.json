@@ -1,0 +1,13 @@
+{
+  "customers": [
+    {"name":"Ram Tmg","address":"Drn"},
+    {"name":"Sarmi Tmg","address":"Simara"},
+    {"name":"Mani Tmg","address":"Drn"}
+  ],
+  "items": [
+    {"name":"Monitor","price":150},
+    {"name":"Keyboard","price":50},
+    {"name":"Sprite","price":50},
+    {"name":"Laptop Stand","price":75}
+  ]
+}
