@@ -1,0 +1,13 @@
+{
+  "customers": [
+    {"name":"Ram Shrestha","address":"Kathmandu"},
+    {"name":"Sita Gurung","address":"Lalitpur"},
+    {"name":"Hari Magar","address":"Bhaktapur"}
+  ],
+  "items": [
+    {"name":"Monitor","price":150},
+    {"name":"Keyboard","price":50},
+    {"name":"Mouse","price":25},
+    {"name":"Laptop Stand","price":75}
+  ]
+}

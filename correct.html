@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice System</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+body { font-family: Arial; background:#f0f2f5; display:flex; justify-content:center; padding:20px; }
+.container { width:100%; max-width:800px; background:white; padding:25px; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+h1 { text-align:center; color:#1976d2; margin-bottom:20px; font-size:24px; }
+.form-section { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+label { font-weight:500; }
+input, select, button { padding:10px; border-radius:6px; border:1px solid #ccc; font-size:14px; width:100%; }
+.inline { display:flex; gap:5px; align-items:center; flex-wrap:wrap; }
+.small-btn { width:40px; background:#4caf50; color:white; border:none; border-radius:6px; cursor:pointer; font-size:18px; }
+.small-btn:hover { background:#43a047; }
+.btn-primary { background:#1976d2; color:white; border:none; cursor:pointer; font-size:15px; margin-top:5px; }
+.btn-primary:hover { background:#115293; }
+.btn-danger { background:#e53935; color:white; border:none; border-radius:6px; padding:5px 10px; cursor:pointer; }
+.btn-danger:hover { background:#c62828; }
+.btn-edit { background:#ff9800; color:white; border:none; border-radius:6px; padding:5px 10px; cursor:pointer; }
+.btn-edit:hover { background:#fb8c00; }
+table { width:100%; border-collapse:collapse; margin-top:15px; overflow-x:auto; display:block; }
+th, td { border:1px solid #ddd; padding:10px; text-align:center; font-size:14px; min-width:80px; }
+th { background:#1976d2; color:white; }
+.total-box { margin-top:10px; font-weight:bold; text-align:right; color:#1976d2; }
+.btns { display:flex; justify-content:space-between; margin-top:20px; flex-wrap:wrap; gap:5px; }
+input.inline-input { width:60px; text-align:center; }
+@media (max-width:600px){
+  .inline { flex-direction:column; align-items:flex-start; }
+  .btns { flex-direction:column; }
+  table, th, td { font-size:12px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Invoice System</h1>
+
+<div class="form-section">
+  <label>Date:</label>
+  <input type="text" id="invoiceDate" placeholder="Enter date manually">
+
+  <label>Customer:</label>
+  <div class="inline">
+    <select id="customer"></select>
+    <button id="addCustomerBtn" class="small-btn"><i class="fas fa-plus"></i></button>
+  </div>
+
+  <label>Address:</label>
+  <input type="text" id="address" placeholder="Customer address auto-filled">
+
+  <label>Item:</label>
+  <div class="inline">
+    <select id="item"></select>
+    <button id="addItemBtn" class="small-btn"><i class="fas fa-plus"></i></button>
+  </div>
+
+  <label>Price (per unit):</label>
+  <input type="number" id="price" min="0" placeholder="Enter price">
+
+  <label>Quantity:</label>
+  <input type="number" id="quantity" min="1" value="1">
+
+  <div class="inline">
+    <button id="addBtn" class="btn-primary">Add Invoice</button>
+    <button id="resetBtn" class="btn-danger">Reset Form</button>
+  </div>
+</div>
+
+<h2>Invoice List</h2>
+<div style="overflow-x:auto;">
+<table id="invoiceTable">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Customer</th>
+      <th>Address</th>
+      <th>Item</th>
+      <th>Qty</th>
+      <th>Price</th>
+      <th>Total</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+</div>
+
+<div class="total-box" id="grandTotal">Grand Total: $0</div>
+
+<div class="btns">
+  <button id="exportBtn" class="btn-primary">Export JSON</button>
+  <button id="pdfBtn" class="btn-primary">Generate PDF</button>
+  <button id="printBtn" class="btn-primary">Print Invoice</button>
+  <button id="clearBtn" class="btn-danger">Clear All</button>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// Base64 Logo
+const logoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAYAAAAvOgZ0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH5AYTCyUuLfU1qQAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAItSURBVHja7ZwJbBxRFIbfvfMCwSxi2IIp2KgLkCFAhs9AGJjYkKijTn/DEti0dFjhRG0LE3uhYIgIwiK7nVtF4oEEtrcuV1r1WtfeM3v4T0EJ3Z+Xue+5/+4Y3+bMvcz8eHw/1eVxzv6lUz5n3x8+K3YKi7huUlROcG4faw+Xg3U1Vqx4oFFivhZAvIMocXz8tZ05pMHN1K/bOaepI/poJQ1UtO3S4JcNbIQYw6JvU1z8I8AJAV6AXh8a6qHhzwBwbZt4vGkLPT6KrQW7ZP8wtj9dvsr84DeD+3QfoJ8x5SHYpI1e8yA9zM4Ge7w9ZMj76+fC3tPxzFZz8KN7y9+tALiD3VtFAt4ZtWZbZvB9/gHZlNktY09D6GoK1hY5Q3UHoP4p8V1yt3h0BTrImYVYCeYczPi4T7XQu0QbgF6vWJdCu4rxk+zLmn9v5tvs48GzgdEC3p15Itw/gAcZ0Hrd6oMZZxNnK5H6gJ0ASZ3DrXSm6FsMZ7DeR13QvuF3uID9aPpBf1Bq4K2F3TF6iO9iKYnBbk30G9ijO6jvUZhZYJfcRehI/BxwE4TgWm2bM+KHdPzHUdfOfDbKq6O3oeZ91v0+q0G+u/TnZ4qZ0AAAABJRU5ErkJggg==";
+
+let invoices = JSON.parse(localStorage.getItem('invoices')) || [];
+let customers = [];
+let items = [];
+let editIndex = null;
+
+// Helper: fill dropdown
+function fillDropdown(id, list){
+    const sel = document.getElementById(id);
+    sel.innerHTML = '';
+    list.forEach(obj=>{
+        if(obj && obj.name){
+            const opt = document.createElement('option');
+            opt.value = obj.name.trim(); opt.text = obj.name.trim();
+            sel.appendChild(opt);
+        }
+    });
+}
+
+// Load local data + JSON
+function loadData(){
+    fetch('data.json').then(r=>r.json()).then(data=>{
+        const jsonCust = (data.customers||[]).map(c=>({name:c.name.trim(), address:c.address||''}));
+        const localCust = JSON.parse(localStorage.getItem('customers')||'[]');
+        customers = Array.from(new Map([...jsonCust,...localCust].map(c=>[c.name,c])).values());
+        fillDropdown('customer',customers);
+
+        const jsonItems = (data.items||[]).map(i=>({name:i.name.trim(), price:parseFloat(i.price)}));
+        const localItems = JSON.parse(localStorage.getItem('items')||'[]');
+        items = Array.from(new Map([...jsonItems,...localItems].map(i=>[i.name,i])).values());
+        fillDropdown('item',items);
+        if(items.length>0) document.getElementById('price').value = items[0].price;
+    }).catch(()=>console.warn('data.json load error'));
+}
+
+// Auto-fill
+document.getElementById('customer').addEventListener('change', ()=>{
+    const c = customers.find(c=>c.name===document.getElementById('customer').value);
+    document.getElementById('address').value = c ? c.address : '';
+});
+document.getElementById('item').addEventListener('change', ()=>{
+    const i = items.find(i=>i.name===document.getElementById('item').value);
+    document.getElementById('price').value = i ? i.price : '';
+});
+
+// Add/Edit Customers & Items
+document.getElementById('addCustomerBtn').addEventListener('click', ()=>{
+    const name = prompt("Customer Name:");
+    const addr = prompt("Address:");
+    if(name && !customers.some(c=>c.name===name.trim())){
+        customers.push({name:name.trim(), address:addr||''});
+        localStorage.setItem('customers', JSON.stringify(customers));
+        fillDropdown('customer',customers);
+    }
+});
+document.getElementById('addItemBtn').addEventListener('click', ()=>{
+    const name = prompt("Item Name:");
+    const price = parseFloat(prompt("Price:"));
+    if(name && !isNaN(price) && !items.some(i=>i.name===name.trim())){
+        items.push({name:name.trim(), price});
+        localStorage.setItem('items', JSON.stringify(items));
+        fillDropdown('item',items);
+        document.getElementById('price').value = price;
+    }
+});
+
+// Add invoice
+document.getElementById('addBtn').addEventListener('click', ()=>{
+    const date = document.getElementById('invoiceDate').value.trim();
+    const customer = document.getElementById('customer').value;
+    const address = document.getElementById('address').value.trim();
+    const item = document.getElementById('item').value;
+    const price = parseFloat(document.getElementById('price').value);
+    const qty = parseInt(document.getElementById('quantity').value);
+    if(!date || !customer || !item || isNaN(price) || qty<=0){ alert("Fill all fields"); return; }
+    const inv = {date, customer, address, item, price, qty, total:price*qty};
+    if(editIndex!==null){ invoices[editIndex]=inv; editIndex=null; document.getElementById('addBtn').innerText='Add Invoice'; }
+    else invoices.push(inv);
+    localStorage.setItem('invoices',JSON.stringify(invoices));
+    renderTable(); document.getElementById('quantity').value=1;
+});
+
+// Reset form
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+    document.getElementById('invoiceDate').value='';
+    document.getElementById('quantity').value=1;
+    document.getElementById('price').value=items.length>0?items[0].price:'';
+    document.getElementById('customer').selectedIndex=0;
+    document.getElementById('item').selectedIndex=0;
+    document.getElementById('address').value='';
+});
+
+// Render table
+function renderTable(){
+  const tbody = document.querySelector('#invoiceTable tbody');
+  tbody.innerHTML='';
+  let grandTotal=0;
+  invoices.forEach((inv,index)=>{
+    grandTotal+=inv.total;
+    const tr = document.createElement('tr');
+    tr.innerHTML=`
+      <td>${inv.date}</td>
+      <td>${inv.customer}</td>
+      <td>${inv.address}</td>
+      <td>${inv.item}</td>
+      <td><input type="number" class="inline-input" value="${inv.qty}" min="1" onchange="updateQty(${index},this.value)"></td>
+      <td><input type="number" class="inline-input" value="${inv.price}" min="0" step="0.01" onchange="updatePrice(${index},this.value)"></td>
+      <td>$${inv.total.toFixed(2)}</td>
+      <td><button class="btn-edit" onclick="editInvoice(${index})">Edit</button><button class="btn-danger" onclick="deleteInvoice(${index})">X</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('grandTotal').innerText=`Grand Total: $${grandTotal.toFixed(2)}`;
+}
+
+// Inline updates
+function updateQty(i,val){ const q=parseInt(val); if(q>0){ invoices[i].qty=q; invoices[i].total = invoices[i].price*q; localStorage.setItem('invoices',JSON.stringify(invoices)); renderTable(); } }
+function updatePrice(i,val){ const p=parseFloat(val); if(p>=0){ invoices[i].price=p; invoices[i].total = p*invoices[i].qty; localStorage.setItem('invoices',JSON.stringify(invoices)); renderTable(); } }
+
+// Edit/Delete
+function editInvoice(i){ const inv=invoices[i]; document.getElementById('invoiceDate').value=inv.date; document.getElementById('customer').value=inv.customer; document.getElementById('address').value=inv.address; document.getElementById('item').value=inv.item; document.getElementById('price').value=inv.price; document.getElementById('quantity').value=inv.qty; editIndex=i; document.getElementById('addBtn').innerText='Update Invoice'; }
+function deleteInvoice(i){ if(confirm('Delete this invoice?')){ invoices.splice(i,1); localStorage.setItem('invoices',JSON.stringify(invoices)); renderTable(); } }
+
+// Export JSON
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(invoices,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='invoices.json'; a.click(); URL.revokeObjectURL(url);
+});
+
+// Clear All
+document.getElementById('clearBtn').addEventListener('click', ()=>{ if(confirm('Clear all invoices?')){ invoices=[]; localStorage.removeItem('invoices'); renderTable(); } });
+
+// Generate PDF with table layout
+document.getElementById('pdfBtn').addEventListener('click', ()=>{
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'p',unit:'pt',format:'a4'});
+  doc.setFontSize(18); doc.text("Invoice",40,40);
+  doc.setFontSize(12);
+  const colWidths=[60,100,100,80,40,60,60];
+  const startX=40, startY=60;
+  let y=startY;
+  // header
+  const headers=["Date","Customer","Address","Item","Qty","Price","Total"];
+  headers.forEach((h,i)=>doc.text(h,startX+colWidths.slice(0,i).reduce((a,b)=>a+b,0)+5,y));
+  y+=15;
+  invoices.forEach(inv=>{
+    const values=[inv.date,inv.customer,inv.address,inv.item,inv.qty,inv.price.toFixed(2),inv.total.toFixed(2)];
+    values.forEach((v,i)=>{
+      doc.text(String(v),startX+colWidths.slice(0,i).reduce((a,b)=>a+b,0)+5,y);
+    });
+    y+=15;
+  });
+  y+=10;
+  doc.text(`Grand Total: $${invoices.reduce((a,b)=>a+b.total,0).toFixed(2)}`,startX,y);
+  doc.save('invoice.pdf');
+});
+
+loadData();
+renderTable();
+</script>
+</body>
+</html>
